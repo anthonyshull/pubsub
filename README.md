@@ -1,6 +1,6 @@
 # PUBSUB
 
-This publish/subscribe server uses [Server Sent Events](sses).
+This publish/subscribe server uses Server Sent Events.
 
 The server is simple enough to run:
 ```
@@ -19,4 +19,3 @@ Tests:
 %> go test -race
 %> errcheck .
 ```
-[sses]: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events
