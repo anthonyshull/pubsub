@@ -26,6 +26,7 @@ func subscribe(broker *Broker) http.HandlerFunc {
 
 		key := r.RemoteAddr
 		broker.Add(key)
+		defer broker.Remove(key)
 
 		for {
 			select {

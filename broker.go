@@ -13,6 +13,12 @@ func (broker *Broker) Add(key string) {
 	broker.subscribers[key] = make(chan[]byte)
 }
 
+func (broker *Broker) Remove(key string) {
+	broker.mu.Lock()
+	defer broker.mu.Unlock()
+	delete(broker.subscribers, key)
+}
+
 func (broker *Broker) Publish(message []byte) {
 	broker.mu.Lock()
 	defer broker.mu.Unlock()
