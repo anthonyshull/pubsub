@@ -7,48 +7,59 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"github.com/google/uuid"
 )
 
-var broker = make(map[string]chan []byte)
-
 // subscribe to messages
-func subscribe(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "client does not support streaming", http.StatusInternalServerError)
-		return
-	}
+func subscribe(broker *Broker) http.HandlerFunc {
+	return func (w http.ResponseWriter, r *http.Request) {
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "server does not support streaming", http.StatusInternalServerError)
+			return
+		}
 
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
+		ctx := r.Context()
 
-	key := uuid.New().String()
-	broker[key] = make(chan []byte)
-	defer delete(broker, key)
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
 
-	for {
-		fmt.Fprintf(w, "%s\n", <-broker[key])
-		flusher.Flush()
+		key := r.RemoteAddr
+		broker.Add(key)
+
+		for {
+			select {
+				case message := <-broker.subscribers[key]:
+					fmt.Fprintf(w, "%s\n", message)
+					flusher.Flush()
+				case <-ctx.Done():
+					return
+			}
+		}
 	}
 }
 
-// publish a message
-func publish(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err == nil {
-		for _, c := range broker {
-			c <- body
-		}
-	}
 
-	w.WriteHeader(http.StatusCreated)
+// publish a message
+func publish(broker *Broker) http.HandlerFunc {
+	return func (w http.ResponseWriter, r *http.Request) {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "message body could not be read", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		go broker.Publish(body)
+	}
 }
 
 func main() {
+	broker := &Broker{subscribers: make(map[string] chan[]byte)}
+
 	r := chi.NewRouter()
-	r.Post("/publish", publish)
-	r.Get("/subscribe", subscribe)
+	r.Post("/publish", publish(broker))
+	r.Get("/subscribe", subscribe(broker))
+
 	log.Fatal(http.ListenAndServe(":9999", r))
 }

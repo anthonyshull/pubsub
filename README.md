@@ -4,7 +4,7 @@ This publish/subscribe server uses Server Sent Events.
 
 The server is simple enough to run:
 ```
-%> go run main.go
+%> go run main.go broker.go
 ```
 You can subscribe to messages via HTTP:
 ```
