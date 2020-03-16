@@ -17,7 +17,7 @@ func TestHandlers(t *testing.T) {
 			return
 		}
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(publish(broker))
+		handler := http.HandlerFunc(broker.Publish)
 		handler.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusCreated {
 			t.Errorf("wrong status code: got %v want %v", status, http.StatusCreated)
