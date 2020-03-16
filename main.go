@@ -11,7 +11,7 @@ import (
 
 // subscribe to messages
 func subscribe(broker *Broker) http.HandlerFunc {
-	return func (w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		flusher, ok := w.(http.Flusher)
 		if !ok {
 			http.Error(w, "server does not support streaming", http.StatusInternalServerError)
@@ -30,20 +30,19 @@ func subscribe(broker *Broker) http.HandlerFunc {
 
 		for {
 			select {
-				case message := <-broker.subscribers[key]:
-					fmt.Fprintf(w, "%s\n", message)
-					flusher.Flush()
-				case <-ctx.Done():
-					return
+			case message := <-broker.subscribers[key]:
+				fmt.Fprintf(w, "%s\n", message)
+				flusher.Flush()
+			case <-ctx.Done():
+				return
 			}
 		}
 	}
 }
 
-
 // publish a message
 func publish(broker *Broker) http.HandlerFunc {
-	return func (w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "message body could not be read", http.StatusInternalServerError)
@@ -56,7 +55,7 @@ func publish(broker *Broker) http.HandlerFunc {
 }
 
 func main() {
-	broker := &Broker{subscribers: make(map[string] chan[]byte)}
+	broker := &Broker{subscribers: make(map[string]chan []byte)}
 
 	r := chi.NewRouter()
 	r.Post("/publish", publish(broker))
